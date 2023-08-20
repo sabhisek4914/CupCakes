@@ -1,0 +1,84 @@
+import React, { PureComponent } from 'react';
+import "./styles.css";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
+export default class myComponent extends PureComponent {
+	
+	state={data:[]}
+	
+  async componentDidMount() {
+	this.timer = setInterval( async () => {
+		this.setState(prevState => ({
+			  data: []}))
+		let apiResponse = await this.fetchAndReturnResponse();
+		let allHits = apiResponse.hits.hits;
+		for(let data of allHits){
+			let source = data._source
+			let modifiedCupCake = source.NewImage.Cupcake.S;
+			let oldCupCake = source.OldImage.Cupcake.S;
+			let country = source.NewImage.Country.S;
+			let dataObj = {name: country, uv: parseInt(modifiedCupCake), pv: parseInt(oldCupCake), amt: 10000};
+			this.setState(prevState => ({
+			  data: [...prevState.data, dataObj]
+			}))
+		}
+	},15000)
+  }
+ 
+  
+  async fetchAndReturnResponse(){
+	  const targetTimeStamp = new Date();
+	targetTimeStamp.setMinutes(targetTimeStamp.getMinutes() - 335);
+	
+	// extract date time parts
+	let date = ("0" + targetTimeStamp.getDate()).slice(-2);
+	let month = ("0" + (targetTimeStamp.getMonth() + 1)).slice(-2);
+	let year = targetTimeStamp.getFullYear();
+	let hours = ("0" + (targetTimeStamp.getHours())).slice(-2);
+	let minutes = ("0" + (targetTimeStamp.getMinutes())).slice(-2);
+	let seconds = ("0" + (targetTimeStamp.getSeconds())).slice(-2);
+	
+	var timeStr = year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+	console.log(timeStr);
+	
+	// hardcoding timestamp for now
+	//timeStr = "2021-05-07 00:00:00";
+	
+	  try {
+		    const requestOptions = {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({"query":{"range":{"eventTimeStamp.keyword":{"gte":timeStr}}},"size":100})
+			};
+            const response = await fetch('https://search-ddb-to-es-vxbv3zpxppqxmlolen5ttlkgde.us-east-1.es.amazonaws.com/lambda-index/lambda-type/_search', 			requestOptions);
+            const responseObj = await response.json();
+            return responseObj;
+        } catch (error) {
+            console.error(error);
+        }
+  }
+  render() {
+	 //console.log(this.data);
+	 return (
+        <LineChart
+          width={800}
+          height={400}
+          data={this.state.data}
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="pv" stroke="#8884d8" activeDot={{ r: 8 }} />
+          <Line type="monotone" dataKey="uv" stroke="#82ca9d" />
+        </LineChart>
+    );
+  }
+}

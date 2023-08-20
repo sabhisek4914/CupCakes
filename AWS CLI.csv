@@ -1,0 +1,3 @@
+aws --version	//To know the version
+aws configure	//To Connect to AWS use new_user_credentials.csv
+
